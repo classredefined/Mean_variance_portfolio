@@ -1,7 +1,6 @@
 #%%
 import numpy as np
 import pandas as pd
-from pandas_datareader import data as wb
 import seaborn as sns
 sns.set(style="darkgrid")
 import matplotlib.pyplot as plt
@@ -9,8 +8,8 @@ import matplotlib.pyplot as plt
 #%%
 # Load the data from yahoo finance.
 # Take start date as 2010
-
-AMZN=wb.DataReader('AMZN', data_source='yahoo',start='2010-1-1') 
+import yfinance as yf
+AMZN = yf.download('AMZN',start='2010-01-01')
 
 #Check loaded data.
 print(AMZN.info())
