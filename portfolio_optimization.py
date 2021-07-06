@@ -4,6 +4,7 @@ import pandas as pd
 import seaborn as sns
 sns.set(style="darkgrid")
 import matplotlib.pyplot as plt
+import cvxpy as cp  #pip install cvxpy --upgrade
 
 #%%
 # Load the data from yahoo finance.
@@ -68,15 +69,15 @@ print(str(round(log_return_Annual_Avg,5)*100),' %')
 #%% Multi-asset analysis
 #CALCULATE RETURN OF INDICES
 Indices=['S&P500','NASDAD','DAX30','NEKKEI','CAC40']
-tickers_indices=['^GSPC', '^IXIC', '^GDAXI', '^N225', '^FCHI']
+stock_namelist=['^GSPC', '^IXIC', '^GDAXI', '^N225', '^FCHI']
 ind_data=pd.DataFrame()
-for t in tickers_indices:
-    ind_data[t]=wb.DataReader(t,data_source='yahoo', start='2010-01-01')['Adj Close']
+for t in stock_namelist:
+    ind_data[t]=yf.download(t, start='2010-01-01')['Adj Close']
 
 ind_data.tail(5)
 # %%
-ind_data.iloc[0]
-# %%
+print(ind_data.iloc[0])
+
 (ind_data/ind_data.iloc[0]).plot(figsize=(16,5))
 plt.title('Price change')
 plt.xlabel('Date')
@@ -84,19 +85,24 @@ plt.ylabel('Percentage')
 plt.show
 # %%
 returns_indi=(ind_data/ind_data.shift(1))-1
-returns_indi.tail(5)
+returns_indi= returns_indi.dropna()
+print(returns_indi.tail(5))
 markets_returns=returns_indi.mean()*250
-markets_returns
+print(markets_returns)
+
 # %%
 plt.bar(Indices,list(markets_returns),align='center',alpha=0.5)
 plt.ylabel('Value')
 plt.title('Annual return')
 plt.show()
 
+#%%
+
+
 # %%
 # train test split 100 first samples
 T_trn = 100  
-ret_mat = np.ascontiguousarray(ret_equity.iloc[1::,:])
+ret_mat = np.ascontiguousarray(returns_indi.iloc[1::,:])
 equity_trn = ret_mat[:T_trn,]
 equity_tst = ret_mat[T_trn:,]
 
@@ -104,9 +110,9 @@ mu_trn = np.mean(equity_trn, axis=0)
 Sigma_trn = np.cov(equity_trn.T)
 
 # Equally weighted portfolio
-w_EWP = np.ones(ret_equity.shape[1])/ret_equity.shape[1]
+w_EWP = np.ones(returns_indi.shape[1])/returns_indi.shape[1]
 w_EWP
-
+#%%
 # Minimum variance portfolio:
 # As investors are assumed risk-averse but still want to make a good profit, we introduce the global minimum variance portfolio and the minimum variance portfolio with shortselling contraints
 
@@ -116,7 +122,8 @@ def GMVP(Sigma):
     w = Sigma_inv_1 / (np.sum(Sigma_inv_1))
     return w
 w_GMVP = GMVP(Sigma_trn)
-
+print(w_GMVP)
+#%%
 def MVP(mu, Sigma, cons ,w_EWP):
     w = cp.Variable(len(mu))
     variance = cp.quad_form(w, Sigma)
@@ -128,8 +135,8 @@ def MVP(mu, Sigma, cons ,w_EWP):
     problem = cp.Problem(cp.Minimize(variance), constraint)   
     problem.solve()         
     return w.value
-w_MVP_short = MVP(mu_trn, Sigma_trn,"short sell",w_EWP)
-
+w_MVP_short = MVP(mu_trn, Sigma_trn,"no short sell",w_EWP)
+print(w_MVP_short)
 #%% Maximum sharpe ratio portfolio:
 def MSR(mu, Sigma):
     ones = np.ones(Sigma.shape[0])
@@ -148,20 +155,20 @@ print(allocation)
 
 #%%
 
-def performance(ret_equity,allocation):
+def performance(returns_indi,allocation):
     ret = []
     vol = []
     sharpe = []
     wealth = []
     for i in range(4):
-        ret.append((np.array(ret_equity) @ (allocation.iloc[i,:].T)).mean()-rfr)
-        vol.append(np.sqrt(np.dot(allocation.iloc[i,:],np.dot(ret_equity.cov(),allocation.iloc[i,:].T))))
+        ret.append((np.array(returns_indi) @ (allocation.iloc[i,:].T)).mean())
+        vol.append(np.sqrt(np.dot(allocation.iloc[i,:],np.dot(returns_indi.cov(),allocation.iloc[i,:].T))))
         sharpe.append(ret[i]/vol[i])
     performance = pd.DataFrame([ret,vol,sharpe],columns = allocation.index).T
     return performance
 
-performance  = pd.concat([performance(ret_equity.iloc[:T_trn,],allocation),
-                         performance(ret_equity.iloc[T_trn:,],allocation)], axis = 1)
+performance  = pd.concat([performance(returns_indi.iloc[:T_trn,],allocation),
+                         performance(returns_indi.iloc[T_trn:,],allocation)], axis = 1)
 performance.columns = ['avg excess return train','volatility train','sharpe ratio train',
                        'avg excess return test','volatility test','sharpe ratio test']
 performance
@@ -177,8 +184,8 @@ plt.show()
 wealth_geom_trn = []
 wealth_geom_tst = []
 for i in range(4):
-    wealth_geom_trn.append(np.cumprod(np.array(ret_equity.iloc[:T_trn,]) @ (allocation.iloc[i,:].T)+1))
-    wealth_geom_tst.append(np.cumprod(np.array(ret_equity.iloc[T_trn:,]) @ (allocation.iloc[i,:].T)+1))  
+    wealth_geom_trn.append(np.cumprod(np.array(returns_indi.iloc[:T_trn,]) @ (allocation.iloc[i,:].T)+1))
+    wealth_geom_tst.append(np.cumprod(np.array(returns_indi.iloc[T_trn:,]) @ (allocation.iloc[i,:].T)+1))  
 
 # plots
 fig, (ax1, ax2) = plt.subplots(1, 2,figsize=(15,5))
@@ -207,3 +214,5 @@ ax1.legend(allocation.index)
 ax2.legend(allocation.index)
 ax1.set(ylim=(0,3))
 plt.show()
+
+# %%
