@@ -30,7 +30,7 @@ AMZN['Simple Return']=(AMZN['Adj Close']/AMZN['Adj Close'].shift(1))-1
 # Check new column data of simple return
 print(AMZN['Simple Return'].head(5))
 #%%
-# Plot the simple return, this is just the daily rate, not too much meaningful
+# Plot the simple return, this is just the daily rate, not overly meaningful for what we're trying to achieve
 AMZN['Simple Return'].plot(figsize=(10,8))
 plt.title('Simple rate of return')
 plt.xlabel('Date')
@@ -114,7 +114,7 @@ w_EWP = np.ones(returns_indi.shape[1])/returns_indi.shape[1]
 w_EWP
 #%%
 # Minimum variance portfolio:
-# As investors are assumed risk-averse but still want to make a good profit, we introduce the global minimum variance portfolio and the minimum variance portfolio with shortselling contraints
+# As investors are assumed to be risk-averse but still want to make a profit, we introduce the global minimum variance portfolio and the minimum variance portfolio with shortselling contraints
 
 def GMVP(Sigma):
     ones = np.ones(Sigma.shape[0])
