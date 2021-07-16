@@ -16,5 +16,8 @@ https://www.youtube.com/watch?v=NjEc7PB0TxQ
 # Thread on how to import data from yfinance
 https://pypi.org/project/yfinance/
 
-#Thread on convex optimization package cvxpy
+# Thread on convex optimization package cvxpy
 https://pypi.org/project/cvxpy/
+
+# Overfitting & Underfitting explained
+https://towardsdatascience.com/train-test-split-and-cross-validation-in-python-80b61beca4b6
